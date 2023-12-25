@@ -318,7 +318,7 @@ function main() {
 
     canvas.addEventListener('mousedown', function(event) {
         let mousePos = getMousePos(canvas, event);
-        let pos = mouseToBoard(mousePos);
+        pos = mouseToBoard(mousePos);
 
         if (!active[pos.x][pos.y]) {
             return;
@@ -340,6 +340,7 @@ function main() {
             }
             selected = null;
         }
+        pos = null;
     });
 
     window.addEventListener('resize', resizeCanvas);
