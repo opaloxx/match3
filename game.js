@@ -247,7 +247,6 @@ function fall(board, active, shift) {
                         [board[i][j], board[i][j - 1]] = [board[i][j - 1], board[i][j]];
                     }
                     shift[i][j] = 0;
-                    //shift[i][j - 1] = -FALL_SLOWNESS + 1;
                 }
             } else {
                 shift[i][j] = 0;
