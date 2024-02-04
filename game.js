@@ -8,6 +8,14 @@ const INACTIVE_COLOR_COEF = 0.5;
 const FALL_SLOWNESS = 25;
 const ANIMATION_INTERVAL = 10;
 
+
+let otherBoard = null;
+let otherActive = null;
+let otherSelected = null;
+let otherShift = null;
+let playerId = crypto.randomUUID();
+
+
 // Цвета кружочков
 const circleColors = [
     'rgb(228,113,122)',
@@ -19,11 +27,7 @@ const circleColors = [
 ];
 
 
-function fillCanvas(color) {
-    // Получение элемента canvas и его контекста
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
+function fillCanvas(canvas, ctx, color) {
     // Задание цвета для заполнения
     ctx.fillStyle = color;
 
@@ -32,14 +36,19 @@ function fillCanvas(color) {
 }
 
 
-function getMousePos(canvas, event) {
-    let rect = canvas.getBoundingClientRect();
-    return {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect(), // abs. size of element
+        scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for X
+        scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for Y
+
+    var clientX = evt.clientX + document.body.scrollLeft,   // account for scroll
+        clientY = evt.clientY + document.body.scrollTop;
+
+    return {    
+        x: (clientX - rect.left) * scaleX,  
+        y: (clientY - rect.top) * scaleY
     };
 }
-
 
 function mouseToBoard(mousePos) {
     let x = Math.floor(mousePos.x / BLOCK_SIZE);
@@ -48,9 +57,12 @@ function mouseToBoard(mousePos) {
 }
 
 
-function drawBoard(ctx, board, pos, selected, active, shift) {
+function drawBoard(canvas, ctx, board, pos, selected, active, shift) {
+    if (board === null) {
+        return;
+    }
     // Заполнение холста основным цветом
-    fillCanvas(SCREEN_COLOR);
+    fillCanvas(canvas, ctx, SCREEN_COLOR);
     //ctx.fillStyle = SCREEN_COLOR;
     //ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -191,7 +203,7 @@ function match3Squares(board, boardCopy, active) {
             boardCopy[i][j + 1] = null;
             boardCopy[i + 1][j + 1] = null;
             changed = true;
-            console.log(board[i][j], board[i + 1][j], board[i][j + 1], board[i + 1][j + 1]);
+            // console.log(board[i][j], board[i + 1][j], board[i][j + 1], board[i + 1][j + 1]);
         }
     }
     return changed;
@@ -222,8 +234,10 @@ function match3(board, active) {
 
 
 function updateActive(board, active) {
+    let changed = false;
     for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = BOARD_SIZE - 1; j >= 0; j--) {
+            let wasActive = active[i][j];
             active[i][j] = true;
             if (j < BOARD_SIZE - 1 && active[i][j + 1] === false) {
                 active[i][j] = false;
@@ -231,12 +245,18 @@ function updateActive(board, active) {
             if (board[i][j] === null) {
                 active[i][j] = false;
             }
+
+            if (wasActive !== active[i][j]) {
+                changed = true;
+            }
         }
     }
+    return changed;
 }
 
 
 function fall(board, active, shift) {
+    changed = false;
     for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = BOARD_SIZE - 1; j >= 0; j--) {
             if (!active[i][j]) {
@@ -248,6 +268,7 @@ function fall(board, active, shift) {
                     }
                     shift[i][j] = 0;
                 }
+                changed = true;
             } else {
                 shift[i][j] = 0;
             }
@@ -255,8 +276,10 @@ function fall(board, active, shift) {
         // Замена верхнего элемента новым случайным значением, если он неактивен
         if (!active[i][0] && shift[i][0] == 0) {
             board[i][0] = Math.floor(Math.random() * circleColors.length);
+            changed = true;
         }
     }
+    return changed;
 }
 
 
@@ -265,8 +288,8 @@ function checkSwap(a, b) {
 }
 
 
-function resizeCanvas() {
-    var canvas = document.getElementById('gameCanvas');
+function resizeCanvas(canvasName) {
+    var canvas = document.getElementById(canvasName);
     var ctx = canvas.getContext('2d');  // Получение контекста canvas
     var maxSize = Math.min(window.innerWidth, window.innerHeight);
 
@@ -282,8 +305,60 @@ function resizeCanvas() {
 }
 
 
-function main() {
-    resizeCanvas();
+function connectToServer() {
+    // Create a WebSocket object with the server URL
+    const socket = new WebSocket("ws://localhost:3000");
+
+    // Listen to the open event, which indicates the connection is established
+    socket.onopen = () => {
+        console.log("WebSocket connection opened");
+        // Send a message to the server
+        socket.send(JSON.stringify({"player_id": playerId}));
+        main(socket)
+    };
+
+    // Listen to the message event, which contains the data received from the server
+    socket.onmessage = (event) => {
+        let message = JSON.parse(event.data);
+        console.log(message)
+        if (message["board"] !== undefined) {
+            otherBoard = message["board"];
+            // console.log(otherBoard)
+            otherActive = message["active"];
+            otherSelected = message["selected"];
+            otherShift = message["shift"];
+        }
+    };
+
+    // Listen to the close event, which indicates the connection is closed
+    socket.onclose = (event) => {
+        console.log("WebSocket connection closed");
+    };
+
+    // Listen to the error event, which indicates there is an error with the connection
+    socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
+    return socket;
+}
+
+
+function sendOnChange(socket, board, selected, active, shift) {
+    let message = {
+        "board": board,
+        "shift": shift,
+        "active": active,
+        "selected": selected,
+        "player_id": playerId,
+    }
+    socket.send(JSON.stringify(message))
+}
+
+
+function main(socket) {
+    resizeCanvas("gameCanvas");
+    resizeCanvas("gameCanvas2");
     // Игровое поле
     let board = [];
     let active = [];
@@ -299,6 +374,9 @@ function main() {
     // Получение элемента canvas и контекста
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+
+    const canvas2 = document.getElementById('gameCanvas2');
+    const ctx2 = canvas2.getContext('2d');
     // canvas.width = SCREEN_SIZE;
     // canvas.height = SCREEN_SIZE;
     
@@ -326,6 +404,7 @@ function main() {
 
         if (selected === null) {
             selected = pos;
+            sendOnChange(socket, board, selected, active, shift);
         } else {
             if (checkSwap(pos, selected)) {
                 // Обмен элементов
@@ -339,6 +418,7 @@ function main() {
                 }
             }
             selected = null;
+            sendOnChange(socket, board, selected, active, shift);
         }
         pos = null;
     });
@@ -359,11 +439,17 @@ function main() {
         // Здесь должна быть логика игры...
 
         // Отрисовка доски
-        match3(board, active);
-        updateActive(board, active);
-        fall(board, active, shift);
-        updateActive(board, active);
-        drawBoard(ctx, board, pos, selected, active, shift);
+        changed = false;
+        changed |= match3(board, active);
+        changed |= updateActive(board, active);
+        changed |= fall(board, active, shift);
+        changed |= updateActive(board, active);
+        drawBoard(canvas, ctx, board, pos, selected, active, shift);
+        drawBoard(canvas2, ctx2, otherBoard, null, otherSelected, otherActive, otherShift);
+
+        if (changed) {
+            sendOnChange(socket, board, selected, active, shift);
+        }
 
         // Запрос на следующее обновление
         // requestAnimationFrame(update);
@@ -375,4 +461,4 @@ function main() {
 }
 
 // Запуск игры
-main();
+connectToServer();
