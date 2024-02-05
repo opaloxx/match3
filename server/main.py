@@ -4,20 +4,27 @@ import websockets
 
 sockets = {}
 states = {}
-
+rooms = {}
+player_room = {}
 
 async def echo(websocket, path):
     async for message in websocket:
         parsed = json.loads(message)
-        if parsed["player_id"] not in sockets:
+        if parsed["type"] == "update_state":
+            states[parsed["player_id"]] = parsed
+
+            for player_id in rooms[player_room[parsed["player_id"]]]:
+                socket = sockets[player_id]
+                if player_id != parsed["player_id"]:
+                    await socket.send(json.dumps(states[parsed["player_id"]]))
+        
+        elif parsed["type"] == "connect":
             sockets[parsed["player_id"]] = websocket
-
-        states[parsed["player_id"]] = parsed
-
-        for player_id in sockets.keys():
-            socket = sockets[player_id]
-            if player_id != parsed["player_id"]:
-                await socket.send(json.dumps(states[parsed["player_id"]]))
+            if parsed["room_id"] not in rooms:
+                rooms[parsed["room_id"]] = []
+            if len(rooms[parsed["room_id"]]) < 2:
+                rooms[parsed["room_id"]].append(parsed["player_id"])
+                player_room[parsed["player_id"]] = parsed["room_id"]
 
 
 start_server = websockets.serve(echo, "localhost", 3000)

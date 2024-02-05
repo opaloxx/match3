@@ -305,6 +305,24 @@ function resizeCanvas(canvasName) {
 }
 
 
+function getRoomId() {
+    return getURLVar("id");
+}
+
+ 
+function getURLVar(key) {
+  var query = String(document.location.href).split('?');
+  if (query[1]) {
+    var part = query[1].split('&');
+    for (i = 0; i < part.length; i++) {
+      var data = part[i].split('=');
+      if (data[0] == key && data[1]) return data[1];
+    }
+  }
+  return '';
+}
+
+
 function connectToServer() {
     // Create a WebSocket object with the server URL
     const socket = new WebSocket("ws://localhost:3000");
@@ -313,8 +331,11 @@ function connectToServer() {
     socket.onopen = () => {
         console.log("WebSocket connection opened");
         // Send a message to the server
-        socket.send(JSON.stringify({"player_id": playerId}));
-        main(socket)
+        socket.send(JSON.stringify({"type": "connect",
+                                    "player_id": playerId,
+                                    "room_id": getRoomId()}));
+        sendOnChange(socket, null, null, null, null);
+        main(socket);
     };
 
     // Listen to the message event, which contains the data received from the server
@@ -346,6 +367,7 @@ function connectToServer() {
 
 function sendOnChange(socket, board, selected, active, shift) {
     let message = {
+        "type": "update_state",
         "board": board,
         "shift": shift,
         "active": active,
