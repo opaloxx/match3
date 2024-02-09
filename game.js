@@ -325,7 +325,7 @@ function getURLVar(key) {
 
 function connectToServer() {
     // Create a WebSocket object with the server URL
-    const socket = new WebSocket("ws://localhost:3000");
+    const socket = new WebSocket("ws://178.154.201.201:3000");
 
     // Listen to the open event, which indicates the connection is established
     socket.onopen = () => {

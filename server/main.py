@@ -27,6 +27,6 @@ async def echo(websocket, path):
                 player_room[parsed["player_id"]] = parsed["room_id"]
 
 
-start_server = websockets.serve(echo, "localhost", 3000)
+start_server = websockets.serve(echo, "0.0.0.0", 3000)
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
