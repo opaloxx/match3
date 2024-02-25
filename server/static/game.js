@@ -13,7 +13,6 @@ let otherBoard = null;
 let otherActive = null;
 let otherSelected = null;
 let otherShift = null;
-let playerId = crypto.randomUUID();
 
 
 // Цвета кружочков
@@ -325,42 +324,37 @@ function getURLVar(key) {
 
 function connectToServer() {
     // Create a WebSocket object with the server URL
-    const socket = new WebSocket("ws://178.154.201.201:3000");
+    const socket = io("http://localhost:3000");
 
     // Listen to the open event, which indicates the connection is established
-    socket.onopen = () => {
-        console.log("WebSocket connection opened");
-        // Send a message to the server
-        socket.send(JSON.stringify({"type": "connect",
-                                    "player_id": playerId,
-                                    "room_id": getRoomId()}));
-        sendOnChange(socket, null, null, null, null);
-        main(socket);
-    };
+    socket.emit("message", JSON.stringify({ type: "connect", room_id: getRoomId() }));
 
-    // Listen to the message event, which contains the data received from the server
-    socket.onmessage = (event) => {
-        let message = JSON.parse(event.data);
-        console.log(message)
-        if (message["board"] !== undefined) {
-            otherBoard = message["board"];
+    sendOnChange(socket, null, null, null, null);
+    main(socket);
+
+    socket.on('message', (message) => {
+        let parsed = JSON.parse(message);
+        console.log(parsed);
+        if (parsed.board !== undefined) {
+            otherBoard = parsed.board;
             // console.log(otherBoard)
-            otherActive = message["active"];
-            otherSelected = message["selected"];
-            otherShift = message["shift"];
+            otherActive = parsed.active;
+            otherSelected = parsed.selected;
+            otherShift = parsed.shift;
         }
-    };
+    });
 
-    // Listen to the close event, which indicates the connection is closed
-    socket.onclose = (event) => {
-        console.log("WebSocket connection closed");
-    };
+    socket.on('disconnect', (reason) => {
+        console.log("Socket.IO connection closed:", reason);
+    });
 
-    // Listen to the error event, which indicates there is an error with the connection
-    socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-    };
-
+    socket.on('connect_error', (error) => {
+        console.error("Socket.IO connection error:", error);
+    });
+    
+    socket.on('connect_timeout', (timeout) => {
+        console.error("Socket.IO connection timeout:", timeout);
+    });
     return socket;
 }
 
@@ -372,9 +366,8 @@ function sendOnChange(socket, board, selected, active, shift) {
         "shift": shift,
         "active": active,
         "selected": selected,
-        "player_id": playerId,
     }
-    socket.send(JSON.stringify(message))
+    socket.emit('message', JSON.stringify(message))
 }
 
 
