@@ -222,6 +222,11 @@ function match3(board, active) {
     changed |= match3Horizontal(board, boardCopy, active);
     changed |= match3Vertical(board, boardCopy, active);
     changed |= match3Squares(board, boardCopy, active);
+    
+    if (changed) {
+        score = document.getElementById("score").textContent;
+        document.getElementById("score").textContent = String(Number(score) + 1);
+    }
 
     for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = 0; j < BOARD_SIZE; j++) {
@@ -290,7 +295,7 @@ function checkSwap(a, b) {
 function resizeCanvas(canvasName) {
     var canvas = document.getElementById(canvasName);
     var ctx = canvas.getContext('2d');  // Получение контекста canvas
-    var maxSize = Math.min(window.innerWidth, window.innerHeight);
+    var maxSize = Math.min(window.innerWidth / 2, window.innerHeight);
 
     canvas.width = maxSize;
     canvas.height = maxSize;
