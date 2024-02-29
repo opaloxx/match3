@@ -28,7 +28,6 @@ def handle_message(data):
         return
 
     username = session["username"]
-    print(username)
     parsed = json.loads(data)
     if parsed["type"] == "update_state":
         states[username] = parsed

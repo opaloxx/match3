@@ -324,7 +324,7 @@ function getURLVar(key) {
 
 function connectToServer() {
     // Create a WebSocket object with the server URL
-    const socket = io("http://localhost:3000");
+    const socket = io(`http://${location.host}`);
 
     // Listen to the open event, which indicates the connection is established
     socket.emit("message", JSON.stringify({ type: "connect", room_id: getRoomId() }));
