@@ -13,6 +13,10 @@ let otherBoard = null;
 let otherActive = null;
 let otherSelected = null;
 let otherShift = null;
+let otherScore = null;
+let otherUsername = null;
+
+let score = 0;
 
 
 // Цвета кружочков
@@ -224,8 +228,8 @@ function match3(board, active) {
     changed |= match3Squares(board, boardCopy, active);
     
     if (changed) {
-        score = document.getElementById("score").textContent;
-        document.getElementById("score").textContent = String(Number(score) + 1);
+        score++;
+        document.getElementById("score").textContent = String(score);
     }
 
     for (let i = 0; i < BOARD_SIZE; i++) {
@@ -346,6 +350,11 @@ function connectToServer() {
             otherActive = parsed.active;
             otherSelected = parsed.selected;
             otherShift = parsed.shift;
+
+            document.getElementById("score2").textContent = String(parsed.score);
+            document.getElementById("username2").textContent = String(parsed.username);
+            otherUsername = parsed.username;
+            otherScore = parsed.score;
         }
     });
 
@@ -371,6 +380,7 @@ function sendOnChange(socket, board, selected, active, shift) {
         "shift": shift,
         "active": active,
         "selected": selected,
+        "score": score,
     }
     socket.emit('message', JSON.stringify(message))
 }

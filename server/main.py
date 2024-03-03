@@ -31,6 +31,7 @@ def handle_message(data):
     parsed = json.loads(data)
     if parsed["type"] == "update_state":
         states[username] = parsed
+        states[username]["username"] = username
 
         if username in player_room:
             room_id = player_room[username]
@@ -78,7 +79,8 @@ def authenticate(username, password):
 def index():
     if "username" in session:
         # Пользователь аутентифицирован, отобразить главную страницу
-        return render_template("index.html", username=session["username"])
+        username = session["username"]
+        return render_template("index.html", username=username)
     # "Welcome, " + session["username"]
     else:
         # Пользователь не аутентифицирован, перенаправить на страницу логина

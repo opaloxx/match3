@@ -7,6 +7,7 @@
     <style>
         /* Здесь вы можете добавить свои стили */
         body {
+            display: flex;
             text-align: center;
             margin: 0;
             padding: 0;
@@ -19,6 +20,11 @@
             /* align-content: center; */
         }
 
+        .user-block {
+            width: 50%;
+            height: 100%;
+        }
+
         #gameCanvas, #gameCanvas2 {
             border: 0px solid black;
             flex-grow: 1;
@@ -27,25 +33,38 @@
             /* margin: 0 0.5%; Add some horizontal margins */
         }
 
-        #score {
+        #score, #score2 {
             font-size: xx-large;
             height: 15vh;
         }
 
-        #info {
+        #info, #info2 {
             height: 15vh;
         }
+        
     </style>
 </head>
 <body>
-    <div id="info">
-        <h1>{{ username }}</h1>
+    <div class="user-block">
+        <div id="info">
+            <h1>{{ username }}</h1>
+        </div>
+        <div class="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        <div id="score">0</div>
     </div>
-    <div class="canvas-container">
-        <canvas id="gameCanvas"></canvas>
-        <canvas id="gameCanvas2"></canvas>
+
+    <div class="user-block">
+        <div id="info2">
+            <h1 id="username2"></h1>
+        </div>
+        <div class="canvas-container">
+            <canvas id="gameCanvas2"></canvas>
+        </div>
+        <div id="score2">0</div>
     </div>
-    <div id="score">0</div>
+
     <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
     <script src="/static/game.js"></script>
 </body>
