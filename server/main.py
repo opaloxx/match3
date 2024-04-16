@@ -2,14 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, emit
 import json
 
+from handlers import connect, update_state
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-sockets = {}
-states = {}
-rooms = {}
-player_room = {}
 
 
 @socketio.on("connect")
@@ -30,30 +27,20 @@ def handle_message(data):
     username = session["username"]
     parsed = json.loads(data)
     if parsed["type"] == "update_state":
-        states[username] = parsed
-        states[username]["username"] = username
-
-        if username in player_room:
-            room_id = player_room[username]
-            for player_id in rooms[room_id]:
-                if player_id != username:
-                    socketio.emit(
-                        "message",
-                        json.dumps(states[username]),
-                        room=sockets[player_id],
-                    )
+        for message, room in update_state(username, parsed):
+            socketio.emit(
+                "message", 
+                json.dumps(message), 
+                room=room
+            )
 
     elif parsed["type"] == "connect":
-        player_id = username
-        sockets[player_id] = request.sid
-
-        room_id = parsed["room_id"]
-        if room_id not in rooms:
-            rooms[room_id] = []
-        if len(rooms[room_id]) < 2:
-            rooms[room_id].append(player_id)
-            player_room[player_id] = room_id
-            # socketio.join_room(request.sid, room_id)
+        for message, room in connect(username, parsed["room_id"], request.sid):
+            socketio.emit(
+                "message", 
+                json.dumps(message), 
+                room=room
+            )
 
 
 @app.route("/login", methods=["GET", "POST"])
